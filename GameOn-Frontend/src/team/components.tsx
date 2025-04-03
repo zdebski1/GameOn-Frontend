@@ -4,11 +4,11 @@ import { ChevronDown } from 'lucide-react-native';
 import styles from './styles';
 
 interface Team {
-  id: number;
-  name: string;
+  teamId: number;
+  teamName: string;
 }
 
-export default function TeamDropDown () {
+export default function TeamDropDown() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -19,44 +19,62 @@ export default function TeamDropDown () {
     const fetchTeams = async () => {
       try {
         const response = await fetch('http://localhost:3000/teams');
+        const text = await response.text(); // Log raw response for debugging
+        console.log('Raw response:', text);
+    
         if (!response.ok) {
-          throw new Error('Network response was not ok');
+          throw new Error(`HTTP Error! Status: ${response.status}`);
         }
-
-        const data = await response.json();
+    
+        const data = JSON.parse(text);
+        console.log('Parsed data:', data);
         setTeams(data);
-        setLoading(false);
       } catch (error) {
-        console.error('Error fetching teams:', error);
-        setError('Unable to fetch teams');
+        let errorMessage = 'An unknown error occurred';
+    
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        }
+    
+        console.error('Error fetching teams:', errorMessage);
+        setError(`Unable to fetch teams: ${errorMessage}`);
+      } finally {
         setLoading(false);
       }
     };
-
+    
     fetchTeams();
   }, []);
 
   const selectedTeamName = selectedTeam
-    ? teams.find((team) => team.id === selectedTeam)?.name
+    ? teams.find((team) => team.teamId === selectedTeam)?.teamName ?? 'Select a team'
     : 'Select a team';
 
   if (loading) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color="#0066cc" />
-        <Text style={styles.loadingText}>Loading teams...</Text>
+        <View style={styles.textContainer}>
+          <Text style={styles.loadingText}>Loading teams...</Text>
+        </View>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {error && <Text style={styles.errorBanner}>{error}</Text>}
+      {error ? (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      ) : null}
 
-      <Text style={styles.label}>Select a team:</Text>
+      <View style={styles.textContainer}>
+        <Text style={styles.label}>Select a team:</Text>
+      </View>
 
       <Pressable style={styles.dropdown} onPress={() => setModalVisible(true)}>
-        <Text style={styles.selectedText}>{selectedTeamName}</Text>
+        <Text style={styles.selectedText}>{String(selectedTeamName)}</Text>
         <ChevronDown size={24} color="#666" />
       </Pressable>
 
@@ -68,25 +86,29 @@ export default function TeamDropDown () {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select a Team</Text>
+            <View style={styles.textContainer}>
+              <Text style={styles.modalTitle}>Select a Team</Text>
+            </View>
 
             <ScrollView style={styles.scrollView}>
               {teams.map((team) => (
                 <Pressable
-                  key={team.id}
+                  key={team.teamId}
                   style={styles.option}
                   onPress={() => {
-                    setSelectedTeam(team.id);
+                    setSelectedTeam(team.teamId);
                     setModalVisible(false);
                   }}
                 >
-                  <Text style={styles.optionText}>{team.name}</Text>
+                  <Text style={styles.optionText}>{String(team.teamName)}</Text>
                 </Pressable>
               ))}
             </ScrollView>
 
             <Pressable style={styles.closeButton} onPress={() => setModalVisible(false)}>
-              <Text style={styles.closeButtonText}>Close</Text>
+              <View style={styles.textContainer}>
+                <Text style={styles.closeButtonText}>Close</Text>
+              </View>
             </Pressable>
           </View>
         </View>
@@ -94,4 +116,3 @@ export default function TeamDropDown () {
     </View>
   );
 }
-

@@ -5,7 +5,7 @@ import TeamDropDown from '@/src/team/components';
 const App = () => {
   return (
     <SafeAreaView style={styles.container}>
-      <TeamDropDown /> {}
+      <TeamDropDown />
     </SafeAreaView>
   );
 };

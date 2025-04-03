@@ -90,6 +90,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     width: '100%',
   },
+  textContainer: {
+    alignItems: "center", 
+    marginBottom: 8,
+  }  
 });
 
 export default styles;
