@@ -19,7 +19,7 @@ export default function TeamDropDown() {
     const fetchTeams = async () => {
       try {
         const response = await fetch('http://localhost:3000/teams');
-        const text = await response.text(); // Log raw response for debugging
+        const text = await response.text();
         console.log('Raw response:', text);
     
         if (!response.ok) {
@@ -42,7 +42,7 @@ export default function TeamDropDown() {
         setLoading(false);
       }
     };
-    
+
     fetchTeams();
   }, []);
 
