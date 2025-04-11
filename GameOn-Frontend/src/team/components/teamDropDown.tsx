@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Modal, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import { ChevronDown } from 'lucide-react-native';
-import styles from './styles';
+import styles from '../styles';
 
 interface Team {
   teamId: number;
   teamName: string;
 }
 
-export default function TeamDropDown() {
+interface Props {
+  userId: number;
+  onTeamSelect: (teamId: number) => void;
+}
+
+export default function TeamDropDown({ userId, onTeamSelect }: Props) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -18,24 +23,24 @@ export default function TeamDropDown() {
   useEffect(() => {
     const fetchTeams = async () => {
       try {
-        const response = await fetch('http://localhost:3000/teams');
+        const response = await fetch(`http://localhost:3000/teams?userId=${userId}`);
         const text = await response.text();
         console.log('Raw response:', text);
-    
+
         if (!response.ok) {
           throw new Error(`HTTP Error! Status: ${response.status}`);
         }
-    
+
         const data = JSON.parse(text);
         console.log('Parsed data:', data);
         setTeams(data);
       } catch (error) {
         let errorMessage = 'An unknown error occurred';
-    
+
         if (error instanceof Error) {
           errorMessage = error.message;
         }
-    
+
         console.error('Error fetching teams:', errorMessage);
         setError(`Unable to fetch teams: ${errorMessage}`);
       } finally {
@@ -73,11 +78,13 @@ export default function TeamDropDown() {
         <Text style={styles.label}>Select a team:</Text>
       </View>
 
+      {/* Pressable to open modal */}
       <Pressable style={styles.dropdown} onPress={() => setModalVisible(true)}>
         <Text style={styles.selectedText}>{String(selectedTeamName)}</Text>
         <ChevronDown size={24} color="#666" />
       </Pressable>
 
+      {/* Modal with list of teams */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -97,6 +104,7 @@ export default function TeamDropDown() {
                   style={styles.option}
                   onPress={() => {
                     setSelectedTeam(team.teamId);
+                    onTeamSelect(team.teamId); // ✅ Notify parent
                     setModalVisible(false);
                   }}
                 >
