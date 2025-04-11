@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Modal, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import { ChevronDown } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles from '../styles';
 
 interface Team {
@@ -9,11 +10,11 @@ interface Team {
 }
 
 interface Props {
-  userId: number;
   onTeamSelect: (teamId: number) => void;
+  userId: number; // Add userId to the props type
 }
 
-export default function TeamDropDown({ userId, onTeamSelect }: Props) {
+export default function TeamDropDown({ onTeamSelect, userId }: Props) {
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -23,16 +24,18 @@ export default function TeamDropDown({ userId, onTeamSelect }: Props) {
   useEffect(() => {
     const fetchTeams = async () => {
       try {
+        if (!userId) {
+          setError('User not logged in');
+          return;
+        }
+
         const response = await fetch(`http://localhost:3000/teams?userId=${userId}`);
-        const text = await response.text();
-        console.log('Raw response:', text);
+        const data = await response.json();
 
         if (!response.ok) {
           throw new Error(`HTTP Error! Status: ${response.status}`);
         }
 
-        const data = JSON.parse(text);
-        console.log('Parsed data:', data);
         setTeams(data);
       } catch (error) {
         let errorMessage = 'An unknown error occurred';
@@ -49,7 +52,7 @@ export default function TeamDropDown({ userId, onTeamSelect }: Props) {
     };
 
     fetchTeams();
-  }, []);
+  }, [userId]);
 
   const selectedTeamName = selectedTeam
     ? teams.find((team) => team.teamId === selectedTeam)?.teamName ?? 'Select a team'

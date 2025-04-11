@@ -1,45 +1,60 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, Text, StyleSheet, Alert } from 'react-native';
+import { View, TextInput, Button, StyleSheet, Text } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function RegisterScreen({ onRegisterComplete }: { onRegisterComplete: () => void }) {
-  const [form, setForm] = useState({
-    userName: '',
-    password: '',
-    email: '',
-    firstName: '',
-    lastName: '',
-  });
-
-  const handleChange = (field: string, value: string) => {
-    setForm(prev => ({ ...prev, [field]: value }));
-  };
+export default function RegisterScreen({
+  onRegisterComplete,
+  onSwitchToLogin,
+}: {
+  onRegisterComplete: () => void;
+  onSwitchToLogin: () => void;
+}) {
+  const [userName, setUserName] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [error, setError] = useState('');
 
   const handleRegister = async () => {
+    if (!userName || !password || !confirmPassword || !email || !firstName || !lastName) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
     try {
-      const response = await fetch('http://localhost:3000/users', {
+      const response = await fetch('http://localhost:3000/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...form,
-          isAdmin: false,
-          createdBy: 1,
+          userName,
+          password,
+          email,
+          firstName,
+          lastName,
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Something went wrong');
+        setError(data.message || 'Registration failed');
+        return;
       }
-      
-      console.log('Register complete - switching to login');
-      onRegisterComplete(); // call immediately
-      
-      Alert.alert('Success', 'User created!'); // show message after
 
+      console.log('Registration success:', data);
+      // Store userId in AsyncStorage after registration
+      await AsyncStorage.setItem('userId', String(data.userId));
+      onRegisterComplete(); // Notify parent component that registration is complete
     } catch (error: any) {
-      console.error('Registration failed:', error);
-      Alert.alert('Error', error.message);
+      console.error('Registration error:', error.message);
+      setError('An unexpected error occurred');
     }
   };
 
@@ -49,41 +64,54 @@ export default function RegisterScreen({ onRegisterComplete }: { onRegisterCompl
 
       <TextInput
         placeholder="Username"
-        value={form.userName}
-        onChangeText={text => handleChange('userName', text)}
+        value={userName}
+        onChangeText={setUserName}
         style={styles.input}
       />
       <TextInput
         placeholder="Email"
-        value={form.email}
-        onChangeText={text => handleChange('email', text)}
+        value={email}
+        onChangeText={setEmail}
         style={styles.input}
       />
       <TextInput
         placeholder="First Name"
-        value={form.firstName}
-        onChangeText={text => handleChange('firstName', text)}
+        value={firstName}
+        onChangeText={setFirstName}
         style={styles.input}
       />
       <TextInput
         placeholder="Last Name"
-        value={form.lastName}
-        onChangeText={text => handleChange('lastName', text)}
+        value={lastName}
+        onChangeText={setLastName}
         style={styles.input}
       />
       <TextInput
         placeholder="Password"
-        value={form.password}
-        onChangeText={text => handleChange('password', text)}
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+        style={styles.input}
+      />
+      <TextInput
+        placeholder="Confirm Password"
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
         secureTextEntry
         style={styles.input}
       />
 
-      <Button title="Sign Up" onPress={handleRegister} />
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+      <Button title="Register" onPress={handleRegister} />
+
+      <View style={styles.switchContainer}>
+        <Text>Already have an account?</Text>
+        <Button title="Login" onPress={onSwitchToLogin} />
+      </View>
     </View>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {
@@ -100,5 +128,13 @@ const styles = StyleSheet.create({
   header: {
     fontSize: 24,
     marginBottom: 20,
+  },
+  errorText: {
+    color: 'red',
+    marginBottom: 10,
+  },
+  switchContainer: {
+    marginTop: 20,
+    alignItems: 'center',
   },
 });

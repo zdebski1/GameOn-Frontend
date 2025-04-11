@@ -1,33 +1,71 @@
-import React, { useState } from 'react';
-import { SafeAreaView, Button } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, ActivityIndicator, Text } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import TeamScreen from '@/src/team/teamScreen';
 import RegisterScreen from '@/src/login/registerScreen';
 import LoginScreen from '@/src/login/loginScreen';
-import TeamScreen from '@/src/team/teamScreen';
 
 export default function App() {
-  const [screen, setScreen] = useState<'sign up' | 'login' | 'team'>('sign up');
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [isRegistering, setIsRegistering] = useState<boolean>(true); // Start with the register screen
+  const [loading, setLoading] = useState(true);
 
-  console.log('Current screen:', screen); // Log the current screen state
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      try {
+        const storedUserId = await AsyncStorage.getItem('userId');
+        if (storedUserId) {
+          setIsLoggedIn(true);
+        } else {
+          setIsLoggedIn(false);
+        }
+      } catch (error) {
+        console.error('Error checking login status:', error);
+        setIsLoggedIn(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkLoginStatus();
+  }, []);
+
+  if (loading) {
+    return (
+      <View>
+        <ActivityIndicator size="large" color="#0000ff" />
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+
+  const handleLogin = () => {
+    setIsLoggedIn(true);
+    setIsRegistering(false);
+  };
+
+  const handleRegisterComplete = () => {
+    setIsLoggedIn(true);
+    setIsRegistering(false);
+  };
+
+  const handleLogout = async () => {
+    await AsyncStorage.removeItem('userId');
+    setIsLoggedIn(false);
+  };
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      {screen === 'sign up' ? (
-        <RegisterScreen onRegisterComplete={() => {
-          console.log('Register complete - switching to login');
-          setScreen('login');  // Switch to login after registration
-        }} />
-      ) : screen === 'login' ? (
-        <LoginScreen onLogin={() => {
-          console.log('Logged in - switching to team');
-          setScreen('team');  // Switch to team screen after login
-        }} />
+    <View style={{ flex: 1 }}>
+      {isLoggedIn ? (
+        <TeamScreen onLogout={handleLogout} />
+      ) : isRegistering ? (
+        <RegisterScreen
+          onRegisterComplete={handleRegisterComplete}
+          onSwitchToLogin={() => setIsRegistering(false)} // Switch to Login screen
+        />
       ) : (
-        <TeamScreen />
+        <LoginScreen onLogin={handleLogin} />
       )}
-
-      {/* Buttons to manually switch screens */}
-      <Button title="Login" onPress={() => setScreen('login')} />
-      {/* <Button title="Go to Team" onPress={() => setScreen('team')} /> */}
-    </SafeAreaView>
+    </View>
   );
 }

@@ -1,54 +1,56 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Button, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import TeamDropDown from '@/src/team/components/teamDropDown';
-import TeamMemberDropdown from '@/src/team/components/teamMemberDropDown';
+import TeamDropDown from './components/teamDropDown';
+import TeamMemberDropDown from './components/teamMemberDropDown';
 
-export default function TeamScreen() {
-  const [userId, setUserId] = useState<number | null>(null);
+export default function TeamScreen({ onLogout }: { onLogout: () => void }) {
   const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
-  const [loadingUserId, setLoadingUserId] = useState(true); // State to handle userId loading
+  const [userId, setUserId] = useState<number | null>(null);
 
-  // Fetch userId from AsyncStorage
   useEffect(() => {
-    const loadUserId = async () => {
+    const getUserId = async () => {
       const storedUserId = await AsyncStorage.getItem('userId');
       if (storedUserId) {
-        setUserId(parseInt(storedUserId, 10));
+        setUserId(Number(storedUserId)); // Convert the string to a number
       }
-      setLoadingUserId(false); // Set loading to false after fetching userId
     };
 
-    loadUserId();
+    getUserId();
   }, []);
 
-  if (loadingUserId) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.header}>Loading...</Text>
-      </View>
-    );
-  }
-
-  if (!userId) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.header}>User not found. Please log in again.</Text>
-      </View>
-    );
-  }
+  const handleLogout = async () => {
+    try {
+      // Remove the userId from AsyncStorage
+      await AsyncStorage.removeItem('userId');
+      console.log('User logged out');
+      
+      // Call the onLogout function to notify the parent (App)
+      onLogout();
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Your Teams</Text>
-      <TeamDropDown userId={userId} onTeamSelect={setSelectedTeam} />
-      
+
+      {userId !== null ? (
+        <TeamDropDown onTeamSelect={setSelectedTeam} userId={userId} />
+      ) : (
+        <Text>Loading...</Text>
+      )}
+
       {selectedTeam !== null && (
         <>
           <Text style={styles.subHeader}>Team Members</Text>
-          <TeamMemberDropdown teamId={selectedTeam} />
+          <TeamMemberDropDown teamId={selectedTeam} />
         </>
       )}
+
+      {/* Logout Button */}
+      <Button title="Logout" onPress={handleLogout} color="red" />
     </View>
   );
 }
