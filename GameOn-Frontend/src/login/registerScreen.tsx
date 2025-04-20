@@ -9,7 +9,7 @@ export default function RegisterScreen({
   onRegisterComplete: () => void;
   onSwitchToLogin: () => void;
 }) {
-  const [userName, setUserName] = useState('');
+
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [email, setEmail] = useState('');
@@ -18,7 +18,7 @@ export default function RegisterScreen({
   const [error, setError] = useState('');
 
   const handleRegister = async () => {
-    if (!userName || !password || !confirmPassword || !email || !firstName || !lastName) {
+    if (!password || !confirmPassword || !email || !firstName || !lastName) {
       setError('Please fill in all fields');
       return;
     }
@@ -33,7 +33,6 @@ export default function RegisterScreen({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userName,
           password,
           email,
           firstName,
@@ -61,13 +60,6 @@ export default function RegisterScreen({
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Register</Text>
-
-      <TextInput
-        placeholder="Username"
-        value={userName}
-        onChangeText={setUserName}
-        style={styles.input}
-      />
       <TextInput
         placeholder="Email"
         value={email}

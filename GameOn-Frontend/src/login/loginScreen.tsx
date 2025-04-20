@@ -3,12 +3,12 @@ import { View, TextInput, Button, StyleSheet, Text, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
-  const [userName, setUserName] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
   const handleLogin = async () => {
-    if (!userName || !password) {
+    if (!email || !password) {
       setError('Please enter both username and password');
       return;
     }
@@ -17,7 +17,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       const response = await fetch('http://localhost:3000/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userName, password }),
+        body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
@@ -42,9 +42,9 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       <Text style={styles.header}>Login</Text>
 
       <TextInput
-        placeholder="Username"
-        value={userName}
-        onChangeText={setUserName}
+        placeholder="username"
+        value={email}
+        onChangeText={setEmail}
         style={styles.input}
       />
       <TextInput
