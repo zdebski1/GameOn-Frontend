@@ -26,11 +26,13 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         setError(data.message || 'Login failed');
         return;
       }
-
-      // Store userId in AsyncStorage after successful login
+      
+      // ✅ Store JWT for authenticated requests
+      await AsyncStorage.setItem('token', data.token);
       await AsyncStorage.setItem('userId', String(data.userId));
+      
       Alert.alert('Success', 'Logged in!');
-      onLogin(); // Switch to Team screen on success
+      onLogin();
     } catch (error: any) {
       console.error('Login error:', error.message);
       setError('An unexpected error occurred');

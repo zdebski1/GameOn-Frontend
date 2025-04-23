@@ -24,35 +24,32 @@ export default function TeamDropDown({ onTeamSelect, userId }: Props) {
   useEffect(() => {
     const fetchTeams = async () => {
       try {
-        if (!userId) {
-          setError('User not logged in');
-          return;
-        }
-
-        const response = await fetch(`http://localhost:3000/teams?userId=${userId}`);
+        const token = await AsyncStorage.getItem('token');
+        if (!token) throw new Error('No token found');
+  
+        const response = await fetch('http://localhost:3000/teams', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+  
         const data = await response.json();
-
+  
         if (!response.ok) {
-          throw new Error(`HTTP Error! Status: ${response.status}`);
+          throw new Error(data.message || 'Failed to fetch teams');
         }
-
-        setTeams(data);
-      } catch (error) {
-        let errorMessage = 'An unknown error occurred';
-
-        if (error instanceof Error) {
-          errorMessage = error.message;
-        }
-
-        console.error('Error fetching teams:', errorMessage);
-        setError(`Unable to fetch teams: ${errorMessage}`);
+  
+        setTeams(data); // ✅ Save to state
+      } catch (err: any) {
+        console.error('Error fetching teams:', err);
+        setError(err.message || 'Failed to load teams');
       } finally {
-        setLoading(false);
+        setLoading(false); // ✅ Hide loading spinner
       }
     };
-
-    fetchTeams();
-  }, [userId]);
+  
+    fetchTeams(); // ✅ Actually call the function
+  }, []);
 
   const selectedTeamName = selectedTeam
     ? teams.find((team) => team.teamId === selectedTeam)?.teamName ?? 'Select a team'

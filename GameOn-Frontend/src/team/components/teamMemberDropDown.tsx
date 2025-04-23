@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, Modal, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import { ChevronDown } from 'lucide-react-native';
 import styles from '../styles';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface TeamMember {
 teamMemberId: number;
@@ -25,9 +26,17 @@ export default function TeamMemberDropdown({ teamId }: Props) {
     const fetchMembers = async () => {
       setLoading(true);
       setError(null);
-
+    
       try {
-        const response = await fetch(`http://localhost:3000/teams/${teamId}/members`);
+        const token = await AsyncStorage.getItem('token');
+        if (!token) throw new Error('No token found');
+    
+        const response = await fetch(`http://localhost:3000/teams/${teamId}/members`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+    
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
         const data = await response.json();
         setMembers(data);
@@ -38,7 +47,6 @@ export default function TeamMemberDropdown({ teamId }: Props) {
         setLoading(false);
       }
     };
-
     fetchMembers();
   }, [teamId]);
 
