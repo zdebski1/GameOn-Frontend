@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Button, StyleSheet, TouchableOpacity, Modal, Pressable } from 'react-native';
+import { View, Text, Button, StyleSheet, TouchableOpacity, Modal, TextInput, Pressable } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import TeamDropDown from './components/teamDropDown';
 import TeamMemberDropDown from './components/teamMemberDropDown';
@@ -9,6 +9,9 @@ export default function TeamScreen({ onLogout }: { onLogout: () => void }) {
   const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
   const [userId, setUserId] = useState<number | null>(null);
   const [isMenuVisible, setIsMenuVisible] = useState(false); // State for menu visibility
+  const [isCreateModalVisible, setIsCreateModalVisible] = useState(false); // State for create team modal visibility
+  const [newTeamName, setNewTeamName] = useState('');
+  const [createError, setCreateError] = useState('');
 
   useEffect(() => {
     const getUserId = async () => {
@@ -36,6 +39,42 @@ export default function TeamScreen({ onLogout }: { onLogout: () => void }) {
 
   const toggleMenu = () => {
     setIsMenuVisible(!isMenuVisible); // Toggle the menu visibility
+  };
+
+  // Handle the creation of a new team
+  const handleCreateTeam = async () => {
+    if (!newTeamName) {
+      setCreateError('Team name is required');
+      return;
+    }
+
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) throw new Error('No token found');
+
+      const response = await fetch('http://localhost:3000/teams', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ teamName: newTeamName }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setCreateError(data.message || 'Failed to create team');
+        return;
+      }
+
+      setNewTeamName('');
+      setCreateError('');
+      setIsCreateModalVisible(false);
+      setSelectedTeam(data.teamId); // auto-select the new team
+    } catch (err: any) {
+      setCreateError(err.message || 'Unexpected error');
+    }
   };
 
   return (
@@ -78,6 +117,32 @@ export default function TeamScreen({ onLogout }: { onLogout: () => void }) {
           <TeamMemberDropDown teamId={selectedTeam} />
         </>
       )}
+
+      {/* Create New Team Button */}
+      <Button title="Create New Team" onPress={() => setIsCreateModalVisible(true)} />
+
+      {/* Create Team Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isCreateModalVisible}
+        onRequestClose={() => setIsCreateModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Create a New Team</Text>
+            <TextInput
+              placeholder="Team Name"
+              value={newTeamName}
+              onChangeText={setNewTeamName}
+              style={styles.input}
+            />
+            {createError ? <Text style={styles.errorText}>{createError}</Text> : null}
+            <Button title="Create" onPress={handleCreateTeam} />
+            <Button title="Cancel" color="gray" onPress={() => setIsCreateModalVisible(false)} />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -97,7 +162,6 @@ const styles = StyleSheet.create({
     marginTop: 24,
     marginBottom: 12,
   },
-  // Style for the hamburger menu button (now clickable across the entire button)
   hamburgerMenu: {
     position: 'absolute',
     top: 20,
@@ -107,14 +171,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // Modal container for the dropdown menu
   modalContainer: {
     flex: 1,
     justifyContent: 'flex-end',
     alignItems: 'flex-end',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
-  // Modal content style
   modalContent: {
     backgroundColor: 'white',
     padding: 20,
@@ -138,5 +200,21 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: 'white',
     fontSize: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    marginBottom: 10,
+    fontWeight: 'bold',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 10,
+    marginBottom: 10,
+    borderRadius: 6,
+  },
+  errorText: {
+    color: 'red',
+    marginBottom: 10,
   },
 });
