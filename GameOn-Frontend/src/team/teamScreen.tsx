@@ -354,20 +354,37 @@ export default function TeamScreen({ onLogout }: { onLogout: () => void }) {
 
       if (!token || !storedUserId || !selectedTeam || !selectedMemberId) return;
 
-      // Combine selected date and time properly
-      const startDateTimeString = `${selectedDate}T${startTime}:00`;
-      const endDateTimeString = `${selectedDate}T${endTime}:00`;
+        // Combine selected date and time properly
+        const startDateTimeString = `${selectedDate}T${startTime}`;
+        const endDateTimeString = `${selectedDate}T${endTime}`;
 
-      const startDateTime = new Date(startDateTimeString);
-      const endDateTime = new Date(endDateTimeString);
+        // Ensure time format is correct (e.g., "HH:mm")
+        const formatTime = (time: string) => {
+          // If the time format doesn't have seconds (e.g., "HH:mm"), we add ":00"
+          return time.includes(":") && time.split(":").length === 2
+            ? `${time}:00`
+            : time;
+        };
 
-      if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
-        console.error("Invalid start or end time");
-        return;
-      }
+        const formattedStartTime = formatTime(startTime);
+        const formattedEndTime = formatTime(endTime);
+
+        // Combine with selected date to create full datetime strings
+        const startDateTime = new Date(`${selectedDate}T${formattedStartTime}`);
+        const endDateTime = new Date(`${selectedDate}T${formattedEndTime}`);
+
+        console.log('startDateTime:', startDateTime);
+        console.log('endDateTime:', endDateTime);
+
+        // Validate the date objects
+        if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+          console.error("Invalid start or end time");
+          return;
+        }
+
 
       const response = await fetch(
-        `http://localhost:3000/availabilities/${selectedTeam}/member/${selectedMemberId}`,
+        `http://localhost:3000/availabilities/${selectedTeam}`,
         {
           method: "POST",
           headers: {
