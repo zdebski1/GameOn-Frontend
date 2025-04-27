@@ -1,41 +1,39 @@
-import React, { useState } from 'react';
-import { View, TextInput, Button, StyleSheet, Text, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useState } from "react";
+import { View, TextInput, Button, StyleSheet, Text, Alert } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [userName, setUserName] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      setError('Please enter both username and password');
+    if (!userName || !password) {
+      setError("Please enter both username and password");
       return;
     }
 
     try {
-      const response = await fetch('http://localhost:3000/authenticate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+      const response = await fetch("http://localhost:3000/authenticate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userName, password }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.message || 'Login failed');
+        setError(data.message || "Login failed");
         return;
       }
-      
-      // ✅ Store JWT for authenticated requests
-      await AsyncStorage.setItem('token', data.token);
-      await AsyncStorage.setItem('userId', String(data.userId));
-      
-      Alert.alert('Success', 'Logged in!');
+      await AsyncStorage.setItem("token", data.token);
+      await AsyncStorage.setItem("userId", String(data.userId));
+
+      Alert.alert("Success", "Logged in!");
       onLogin();
     } catch (error: any) {
-      console.error('Login error:', error.message);
-      setError('An unexpected error occurred');
+      console.error("Login error:", error.message);
+      setError("An unexpected error occurred");
     }
   };
 
@@ -45,8 +43,8 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
       <TextInput
         placeholder="username"
-        value={email}
-        onChangeText={setEmail}
+        value={userName}
+        onChangeText={setUserName}
         style={styles.input}
       />
       <TextInput
@@ -71,7 +69,7 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: "#ccc",
     padding: 10,
     marginBottom: 10,
     borderRadius: 6,
@@ -81,7 +79,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   errorText: {
-    color: 'red',
+    color: "red",
     marginBottom: 10,
   },
 });

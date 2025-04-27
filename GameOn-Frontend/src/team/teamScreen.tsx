@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,10 +9,10 @@ import {
   TextInput,
   Pressable,
   ScrollView,
-} from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import { Calendar } from 'react-native-calendars';
+} from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import Icon from "react-native-vector-icons/MaterialIcons";
+import { Calendar } from "react-native-calendars";
 
 export default function TeamScreen({ onLogout }: { onLogout: () => void }) {
   const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
@@ -21,18 +21,43 @@ export default function TeamScreen({ onLogout }: { onLogout: () => void }) {
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
-  const [newTeamName, setNewTeamName] = useState('');
-  const [createError, setCreateError] = useState('');
+  const [newTeamName, setNewTeamName] = useState("");
+  const [createError, setCreateError] = useState("");
 
   // Availability modal states
-  const [isAvailabilityModalVisible, setIsAvailabilityModalVisible] = useState(false);
-  const [selectedDate, setSelectedDate] = useState('');
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
+  const [isAvailabilityModalVisible, setIsAvailabilityModalVisible] =
+    useState(false);
+  const [selectedDate, setSelectedDate] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const [selectedMemberId, setSelectedMemberId] = useState<number | null>(null);
+  const [memberAvailability, setMemberAvailability] = useState<any[]>([]);
+  const [isAvailabilityViewVisible, setIsAvailabilityViewVisible] =
+    useState(false);
+
+  const handleViewAvailability = async (memberId: number) => {
+    setSelectedMemberId(memberId);
+    const token = await AsyncStorage.getItem("token");
+    try {
+      const res = await fetch(
+        `http://localhost:3000/availabilities/${selectedTeam}/member/${memberId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const data = await res.json();
+      setMemberAvailability(data);
+      setIsAvailabilityViewVisible(true);
+    } catch (err) {
+      console.error("Error fetching availability:", err);
+    }
+  };
 
   useEffect(() => {
     const getUserId = async () => {
-      const storedUserId = await AsyncStorage.getItem('userId');
+      const storedUserId = await AsyncStorage.getItem("userId");
       if (storedUserId) {
         setUserId(Number(storedUserId));
       }
@@ -44,18 +69,32 @@ export default function TeamScreen({ onLogout }: { onLogout: () => void }) {
     const fetchTeams = async () => {
       if (!userId) return;
       try {
-        const token = await AsyncStorage.getItem('token');
-        const response = await fetch(`http://localhost:3000/teams?userId=${userId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const token = await AsyncStorage.getItem("token");
+        if (!token) {
+          onLogout();
+          return;
+        }
+        const response = await fetch(
+          `http://localhost:3000/teams?userId=${userId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        if (response.status === 401) {
+          // Token expired or invalid
+          await AsyncStorage.multiRemove(["userId", "token"]);
+          onLogout();
+          return;
+        }
         const data = await response.json();
         setTeams(Array.isArray(data) ? data : data.teams);
       } catch (err) {
-        console.error('Error fetching teams:', err);
+        console.error("Error fetching teams:", err);
       }
     };
+    
 
     fetchTeams();
   }, [userId]);
@@ -64,17 +103,19 @@ export default function TeamScreen({ onLogout }: { onLogout: () => void }) {
     const fetchTeamMembers = async () => {
       if (selectedTeam === null) return;
       try {
-        const token = await AsyncStorage.getItem('token');
+        const token = await AsyncStorage.getItem("token");
         const response = await fetch(`http://localhost:3000/teams/${selectedTeam}/members`, {
+          method: 'GET',
           headers: {
-            Authorization: `Bearer ${token}`,
+            'Authorization': `Bearer ${token}`,
           },
         });
+        
         const data = await response.json();
         const membersArray = Array.isArray(data) ? data : data.members || [];
         setTeamMembers(membersArray);
       } catch (err) {
-        console.error('Error fetching team members:', err);
+        console.error("Error fetching team members:", err);
       }
     };
 
@@ -83,12 +124,13 @@ export default function TeamScreen({ onLogout }: { onLogout: () => void }) {
 
   const handleLogout = async () => {
     try {
-      await AsyncStorage.removeItem('userId');
+      await AsyncStorage.multiRemove(["userId", "token"]);
       onLogout();
     } catch (error) {
-      console.error('Error logging out:', error);
+      console.error("Error logging out:", error);
     }
   };
+  
 
   const toggleMenu = () => {
     setIsMenuVisible(!isMenuVisible);
@@ -96,16 +138,16 @@ export default function TeamScreen({ onLogout }: { onLogout: () => void }) {
 
   const handleCreateTeam = async () => {
     if (!newTeamName) {
-      setCreateError('Team name is required');
+      setCreateError("Team name is required");
       return;
     }
 
     try {
-      const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://localhost:3000/teams', {
-        method: 'POST',
+      const token = await AsyncStorage.getItem("token");
+      const response = await fetch("http://localhost:3000/teams", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ teamName: newTeamName }),
@@ -114,17 +156,17 @@ export default function TeamScreen({ onLogout }: { onLogout: () => void }) {
       const data = await response.json();
 
       if (!response.ok) {
-        setCreateError(data.message || 'Failed to create team');
+        setCreateError(data.message || "Failed to create team");
         return;
       }
 
-      setTeams(prev => [...prev, data]);
-      setNewTeamName('');
-      setCreateError('');
+      setTeams((prev) => [...prev, data]);
+      setNewTeamName("");
+      setCreateError("");
       setIsCreateModalVisible(false);
       setSelectedTeam(data.id);
     } catch (err: any) {
-      setCreateError(err.message || 'Unexpected error');
+      setCreateError(err.message || "Unexpected error");
     }
   };
 
@@ -134,7 +176,12 @@ export default function TeamScreen({ onLogout }: { onLogout: () => void }) {
         <Icon name="menu" size={30} color="#000" />
       </TouchableOpacity>
 
-      <Modal animationType="slide" transparent={true} visible={isMenuVisible} onRequestClose={toggleMenu}>
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isMenuVisible}
+        onRequestClose={toggleMenu}
+      >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Pressable style={styles.menuOption} onPress={handleLogout}>
@@ -156,7 +203,10 @@ export default function TeamScreen({ onLogout }: { onLogout: () => void }) {
           {teams.map((team) => (
             <TouchableOpacity
               key={team.teamId || team.teamName}
-              style={[styles.teamRow, selectedTeam === team.teamId && styles.selectedTeamRow]}
+              style={[
+                styles.teamRow,
+                selectedTeam === team.teamId && styles.selectedTeamRow,
+              ]}
               onPress={() => setSelectedTeam(team.teamId)}
             >
               <Text style={styles.teamName}>{team.teamName}</Text>
@@ -173,9 +223,15 @@ export default function TeamScreen({ onLogout }: { onLogout: () => void }) {
           </View>
           {teamMembers.length > 0 ? (
             teamMembers.map((member, idx) => (
-              <View key={idx} style={styles.tableRow}>
-                <Text style={styles.tableCell}>{member.firstName} {member.lastName}</Text>
-              </View>
+              <TouchableOpacity
+                key={idx}
+                style={styles.tableRow}
+                onPress={() => handleViewAvailability(member.teamMemberId)}
+              >
+                <Text style={styles.tableCell}>
+                  {member.user.firstName} {member.user.lastName}
+                </Text>
+              </TouchableOpacity>
             ))
           ) : (
             <Text>No team members found.</Text>
@@ -183,17 +239,21 @@ export default function TeamScreen({ onLogout }: { onLogout: () => void }) {
 
           <Text style={styles.subHeader}>Team Calendar</Text>
           <Calendar
-            onDayPress={day => {
+            onDayPress={(day: { dateString: React.SetStateAction<string>; }) => {
               setSelectedDate(day.dateString);
               setIsAvailabilityModalVisible(true);
             }}
             markedDates={{
-              [selectedDate]: { selected: true, marked: true, selectedColor: '#2196F3' },
+              [selectedDate]: {
+                selected: true,
+                marked: true,
+                selectedColor: "#2196F3",
+              },
             }}
             theme={{
-              selectedDayBackgroundColor: '#2196F3',
-              todayTextColor: '#00adf5',
-              arrowColor: '#2196F3',
+              selectedDayBackgroundColor: "#2196F3",
+              todayTextColor: "#00adf5",
+              arrowColor: "#2196F3",
             }}
           />
         </View>
@@ -201,7 +261,10 @@ export default function TeamScreen({ onLogout }: { onLogout: () => void }) {
         <Text>Select a team to view members.</Text>
       )}
 
-      <TouchableOpacity style={styles.createButton} onPress={() => setIsCreateModalVisible(true)}>
+      <TouchableOpacity
+        style={styles.createButton}
+        onPress={() => setIsCreateModalVisible(true)}
+      >
         <Text style={styles.createButtonText}>Create Team</Text>
       </TouchableOpacity>
 
@@ -220,13 +283,44 @@ export default function TeamScreen({ onLogout }: { onLogout: () => void }) {
               onChangeText={setNewTeamName}
               style={styles.input}
             />
-            {createError ? <Text style={styles.errorText}>{createError}</Text> : null}
+            {createError ? (
+              <Text style={styles.errorText}>{createError}</Text>
+            ) : null}
             <Button title="Create" onPress={handleCreateTeam} />
-            <Button title="Cancel" color="gray" onPress={() => setIsCreateModalVisible(false)} />
+            <Button
+              title="Cancel"
+              color="gray"
+              onPress={() => setIsCreateModalVisible(false)}
+            />
           </View>
         </View>
       </Modal>
-
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={isAvailabilityViewVisible}
+        onRequestClose={() => setIsAvailabilityViewVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.subHeader}>Availability</Text>
+            {memberAvailability.length === 0 ? (
+              <Text>No availability found.</Text>
+            ) : (
+              memberAvailability.map((slot, idx) => (
+                <Text key={idx}>
+                  {new Date(slot.startDateTime).toLocaleString()} -{" "}
+                  {new Date(slot.endDateTime).toLocaleString()}
+                </Text>
+              ))
+            )}
+            <Button
+              title="Close"
+              onPress={() => setIsAvailabilityViewVisible(false)}
+            />
+          </View>
+        </View>
+      </Modal>
       {/* Availability Modal */}
       <Modal
         animationType="slide"
@@ -236,7 +330,9 @@ export default function TeamScreen({ onLogout }: { onLogout: () => void }) {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.subHeader}>Availability for {selectedDate}</Text>
+            <Text style={styles.subHeader}>
+              Availability for {selectedDate}
+            </Text>
             <TextInput
               placeholder="Start Time (e.g., 09:00 AM)"
               value={startTime}
@@ -249,24 +345,73 @@ export default function TeamScreen({ onLogout }: { onLogout: () => void }) {
               onChangeText={setEndTime}
               style={styles.input}
             />
+<Button
+  title="Save Availability"
+  onPress={async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      const storedUserId = await AsyncStorage.getItem("userId");
+
+      if (!token || !storedUserId || !selectedTeam || !selectedMemberId) return;
+
+      // Combine selected date and time properly
+      const startDateTimeString = `${selectedDate}T${startTime}:00`;
+      const endDateTimeString = `${selectedDate}T${endTime}:00`;
+
+      const startDateTime = new Date(startDateTimeString);
+      const endDateTime = new Date(endDateTimeString);
+
+      if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+        console.error("Invalid start or end time");
+        return;
+      }
+
+      const response = await fetch(
+        `http://localhost:3000/availabilities/${selectedTeam}/member/${selectedMemberId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            availableDate: selectedDate,
+            startDateTime: startDateTime.toISOString(),
+            endDateTime: endDateTime.toISOString(),
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error("Failed to save availability:", result.message);
+        return;
+      }
+
+      console.log("Availability saved:", result);
+
+      // Reset
+      setStartTime("");
+      setEndTime("");
+      setIsAvailabilityModalVisible(false);
+    } catch (err) {
+      console.error("Error saving availability:", err);
+    }
+  }}
+/>
+
             <Button
-              title="Save Availability"
-              onPress={() => {
-                console.log(`Available on ${selectedDate} from ${startTime} to ${endTime}`);
-                // Optional: save to backend
-                setStartTime('');
-                setEndTime('');
-                setIsAvailabilityModalVisible(false);
-              }}
+              title="Cancel"
+              color="gray"
+              onPress={() => setIsAvailabilityModalVisible(false)}
             />
-            <Button title="Cancel" color="gray" onPress={() => setIsAvailabilityModalVisible(false)} />
           </View>
         </View>
       </Modal>
     </ScrollView>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {
@@ -275,9 +420,9 @@ const styles = StyleSheet.create({
   },
   header: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 16,
-    alignSelf: 'center',
+    alignSelf: "center",
   },
   subHeader: {
     fontSize: 20,
@@ -285,19 +430,19 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   hamburgerMenu: {
-    position: 'absolute',
+    position: "absolute",
     top: 20,
     right: 20,
     padding: 20,
   },
   modalContainer: {
     flex: 1,
-    justifyContent: 'space-evenly',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: "space-evenly",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContent: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     padding: 20,
     width: 300,
     borderRadius: 10,
@@ -307,42 +452,42 @@ const styles = StyleSheet.create({
   },
   menuOptionText: {
     fontSize: 18,
-    color: 'black',
+    color: "black",
   },
   closeButton: {
     marginTop: 20,
     padding: 10,
-    backgroundColor: '#f44336',
+    backgroundColor: "#f44336",
     borderRadius: 5,
-    alignItems: 'center',
+    alignItems: "center",
   },
   closeButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#aaa',
+    borderColor: "#aaa",
     padding: 10,
     marginBottom: 10,
     borderRadius: 10,
   },
   errorText: {
-    color: 'red',
+    color: "red",
     marginBottom: 10,
   },
   createButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: "#2196F3",
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 10,
     marginTop: 20,
   },
   createButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontWeight: "bold",
+    textAlign: "center",
   },
   teamListContainer: {
     marginTop: 20,
@@ -351,33 +496,33 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
+    borderBottomColor: "#ccc",
   },
   teamName: {
     fontSize: 18,
   },
   selectedTeamRow: {
-    backgroundColor: '#e0e0e0',
+    backgroundColor: "#e0e0e0",
   },
   tableHeader: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingVertical: 8,
     marginBottom: 8,
-    justifyContent: 'flex-start',
+    justifyContent: "flex-start",
   },
   tableHeaderText: {
     fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'left',
-    width: '100%',
+    fontWeight: "bold",
+    textAlign: "left",
+    width: "100%",
   },
   tableRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingVertical: 8,
   },
   tableCell: {
     fontSize: 14,
-    width: '100%',
-    textAlign: 'left',
+    width: "100%",
+    textAlign: "left",
   },
 });

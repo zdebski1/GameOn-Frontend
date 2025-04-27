@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { View, TextInput, Button, StyleSheet, Text } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useState } from "react";
+import { View, TextInput, Button, StyleSheet, Text } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function RegisterScreen({
   onRegisterComplete,
@@ -9,29 +9,29 @@ export default function RegisterScreen({
   onRegisterComplete: () => void;
   onSwitchToLogin: () => void;
 }) {
-
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [email, setEmail] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [error, setError] = useState('');
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [userName, setUserName] = useState("");
+  const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [error, setError] = useState("");
 
   const handleRegister = async () => {
     if (!password || !confirmPassword || !email || !firstName || !lastName) {
-      setError('Please fill in all fields');
+      setError("Please fill in all fields");
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError("Passwords do not match");
       return;
     }
 
     try {
-      const response = await fetch('http://localhost:3000/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("http://localhost:3000/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           password,
           email,
@@ -43,23 +43,28 @@ export default function RegisterScreen({
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.message || 'Registration failed');
+        setError(data.message || "Registration failed");
         return;
       }
 
-      console.log('Registration success:', data);
-      // Store userId in AsyncStorage after registration
-      await AsyncStorage.setItem('userId', String(data.userId));
-      onRegisterComplete(); // Notify parent component that registration is complete
+      console.log("Registration success:", data);
+      await AsyncStorage.setItem("userId", String(data.userId));
+      onRegisterComplete();
     } catch (error: any) {
-      console.error('Registration error:', error.message);
-      setError('An unexpected error occurred');
+      console.error("Registration error:", error.message);
+      setError("An unexpected error occurred");
     }
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Register</Text>
+      <TextInput
+        placeholder="UserName"
+        value={userName}
+        onChangeText={setUserName}
+        style={styles.input}
+      />
       <TextInput
         placeholder="Email"
         value={email}
@@ -112,7 +117,7 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: "#ccc",
     padding: 10,
     marginBottom: 10,
     borderRadius: 6,
@@ -122,11 +127,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   errorText: {
-    color: 'red',
+    color: "red",
     marginBottom: 10,
   },
   switchContainer: {
     marginTop: 20,
-    alignItems: 'center',
+    alignItems: "center",
   },
 });

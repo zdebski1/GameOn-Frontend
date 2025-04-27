@@ -1,6 +1,15 @@
-import React, { useState } from 'react';
-import { Modal, View, Text, TextInput, Button, StyleSheet, Pressable, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useState } from "react";
+import {
+  Modal,
+  View,
+  Text,
+  TextInput,
+  Button,
+  StyleSheet,
+  Pressable,
+  Alert,
+} from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface Props {
   visible: boolean;
@@ -8,24 +17,28 @@ interface Props {
   onTeamCreated?: () => void;
 }
 
-export default function TeamCreateModal({ visible, onClose, onTeamCreated }: Props) {
-  const [teamName, setTeamName] = useState('');
-  const [error, setError] = useState('');
+export default function TeamCreateModal({
+  visible,
+  onClose,
+  onTeamCreated,
+}: Props) {
+  const [teamName, setTeamName] = useState("");
+  const [error, setError] = useState("");
 
   const handleCreateTeam = async () => {
     if (!teamName.trim()) {
-      setError('Team name cannot be empty');
+      setError("Team name cannot be empty");
       return;
     }
 
     try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) throw new Error('No auth token found');
+      const token = await AsyncStorage.getItem("token");
+      if (!token) throw new Error("No auth token found");
 
-      const response = await fetch('http://localhost:3000/teams', {
-        method: 'POST',
+      const response = await fetch("http://localhost:3000/teams", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ teamName }),
@@ -34,23 +47,28 @@ export default function TeamCreateModal({ visible, onClose, onTeamCreated }: Pro
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.message || 'Failed to create team');
+        setError(data.message || "Failed to create team");
         return;
       }
 
-      Alert.alert('Success', `Team "${teamName}" created!`);
-      setTeamName('');
-      setError('');
+      Alert.alert("Success", `Team "${teamName}" created!`);
+      setTeamName("");
+      setError("");
       onClose();
       if (onTeamCreated) onTeamCreated();
     } catch (err: any) {
-      console.error('Create team error:', err.message);
-      setError('Unexpected error occurred');
+      console.error("Create team error:", err.message);
+      setError("Unexpected error occurred");
     }
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
       <View style={styles.overlay}>
         <View style={styles.modalContent}>
           <Text style={styles.header}>Create a Team</Text>
@@ -74,39 +92,39 @@ export default function TeamCreateModal({ visible, onClose, onTeamCreated }: Pro
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     padding: 24,
     borderRadius: 10,
-    width: '80%',
+    width: "80%",
     elevation: 5,
   },
   header: {
     fontSize: 20,
     marginBottom: 15,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: "#ccc",
     padding: 10,
     marginBottom: 10,
     borderRadius: 6,
   },
   error: {
-    color: 'red',
+    color: "red",
     marginBottom: 10,
   },
   closeButton: {
     marginTop: 10,
-    alignSelf: 'center',
+    alignSelf: "center",
   },
   closeText: {
-    color: '#007aff',
-    fontWeight: '600',
+    color: "#007aff",
+    fontWeight: "600",
   },
 });

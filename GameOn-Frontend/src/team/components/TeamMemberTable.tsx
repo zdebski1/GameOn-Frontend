@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function TeamMemberTable({ teamId }: { teamId: number }) {
-  const [members, setMembers] = useState<any[]>([]);
+  const [members, setTeamMembers] = useState<any[]>([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -11,21 +11,23 @@ export default function TeamMemberTable({ teamId }: { teamId: number }) {
       try {
         const token = await AsyncStorage.getItem('token');
         const response = await fetch(`http://localhost:3000/teams/${teamId}/members`, {
+          method: 'GET',
           headers: {
-            Authorization: `Bearer ${token}`,
+            'Authorization': `Bearer ${token}`,
           },
         });
-
+        
         const data = await response.json();
-        setMembers(data);
-      } catch (err: any) {
-        setError(err.message || 'Failed to load members');
+        console.log("Fetched data:", data);  // Check what data is returned
+        setTeamMembers(data);
+      } catch (err) {
+        console.error("Error fetching data:", err);
       }
     };
-
+  
     fetchMembers();
   }, [teamId]);
-
+  
   if (error) return <Text style={styles.errorText}>{error}</Text>;
 
   if (members.length === 0) return <Text>No team members found.</Text>;
@@ -36,12 +38,21 @@ export default function TeamMemberTable({ teamId }: { teamId: number }) {
         <Text style={styles.headerCell}>First Name</Text>
         <Text style={styles.headerCell}>Last Name</Text>
       </View>
-      {members.map((member) => (
-        <View key={member.teamMemberId} style={styles.row}>
-          <Text style={styles.cell}>{member.firstName}</Text>
-          <Text style={styles.cell}>{member.lastName}</Text>
-        </View>
-      ))}
+      {Array.isArray(members) && members.length > 0 ? (
+  members.map((member) => {
+    console.log("Member:", member); // Debugging line
+    return (
+      <View key={member.teamMemberId} style={styles.row}>
+        <Text style={styles.cell}>{member.user?.firstName || "No first name"}</Text>
+        <Text style={styles.cell}>{member.user?.lastName || "No last name"}</Text>
+      </View>
+    );
+  })
+) : (
+  <Text>No members found.</Text>
+)}
+
+
     </View>
   );
 }
