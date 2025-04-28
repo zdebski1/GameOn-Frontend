@@ -30,6 +30,21 @@ export default function App() {
     checkLoginStatus();
   }, []);
 
+  // Set the title dynamically based on the current screen
+  useEffect(() => {
+    if (isLoggedIn === null) {
+      return; // Don't change the title while loading
+    }
+
+    if (isLoggedIn) {
+      document.title = "Team Screen - GameOn"; // Customize for logged-in users
+    } else if (isRegistering) {
+      document.title = "Register - GameOn"; // Register screen title
+    } else {
+      document.title = "Login - GameOn"; // Login screen title
+    }
+  }, [isLoggedIn, isRegistering]);
+
   if (loading) {
     return (
       <View>
